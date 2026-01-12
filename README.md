@@ -3,7 +3,7 @@
 ## 🌐 Live Demo
 
 👉 **Quick Chat App**:  
-https://quick-chat-client-lilac.vercel.app/login
+https://quick-chat-client-lilac.vercel.app
 
 # 💬 CHAT-APP
 
