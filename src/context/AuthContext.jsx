@@ -18,6 +18,14 @@ export const AuthProvider = ({ children }) => {
 
   // check if user is authenticated and if so, set the user data and connect the socket
 const checkAuth = async () => {
+  if (!token) {
+    // no token => treat as logged out and ensure socket is cleaned up
+    socket?.disconnect();
+    setAuthUser(null);
+    setOnlineUsers([]);
+    return;
+  }
+
   try {
     // no need for explicit headers, axios default token will be used
     const { data } = await axios.get("/api/auth/check");
@@ -79,9 +87,11 @@ const checkAuth = async () => {
     setToken(null);
     setAuthUser(null);
     setOnlineUsers([]);
-    axios.defaults.headers.common["token"] = null;
+    delete axios.defaults.headers.common["token"];
+    delete axios.defaults.headers.common["Authorization"];
     toast.success("Logged out successfully");
     socket?.disconnect();
+    setSocket(null);
   };
 
 
