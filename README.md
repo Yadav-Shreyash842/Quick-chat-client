@@ -1,8 +1,8 @@
+👉 **Quick Chat App**:  
+
 
 
 ## 🌐 Live Demo
-
-👉 **Quick Chat App**:  
 https://quick-chat-client-lilac.vercel.app
 
 # 💬 CHAT-APP
@@ -226,11 +226,6 @@ npm run dev
 
 ---
 
-## 📄 License
-
-MIT License
-
----
 
 ## 🙏 Acknowledgements
 
@@ -240,8 +235,3 @@ MIT License
 * Tailwind CSS
 * Cloudinary
 
-
-
-
-Just tell me bhai 💪
-```
