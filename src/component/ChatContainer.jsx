@@ -9,7 +9,8 @@ import toast from 'react-hot-toast'
 const ChatContainer = () => {
   const { messages, selectedUser, setSelectedUser, sendMessage, getMessages } =
     useContext(ChatContext)
-  const { authUser, onlineUsers, socket } = useContext(AuthContext)
+  const { authUser, onlineUsers, socket } = useContext(AuthContext)  
+                
 
   const scrollEnd = useRef(null)
   const [input, setInput] = useState('')
@@ -36,7 +37,7 @@ const ChatContainer = () => {
 
     const reader = new FileReader()
     reader.onloadend = async () => {
-      await sendMessage({ image: reader.result })
+      await sendMessage({  image: reader.result })
       e.target.value = ''
     }
     reader.readAsDataURL(file)
@@ -76,6 +77,7 @@ const ChatContainer = () => {
           alt=""
           className="w-8 rounded-full"
         />
+                
 
         <p className="flex-1 text-lg text-white flex items-center gap-2">
           {selectedUser.fullName}
@@ -138,22 +140,42 @@ const ChatContainer = () => {
           return (
             <div
               key={msg._id}
-              className={`flex items-end gap-2 ${
+              className={`flex items-end gap-2 mb-4 ${
                 isMine ? 'justify-end' : 'justify-start'
               }`}
             >
-              <p
-                className={`p-2 max-w-[200px] text-sm rounded-lg mb-6 break-all ${
-                  isMine
-                    ? 'bg-blue-500 text-white rounded-br-none'
-                    : 'bg-gray-200 text-black rounded-bl-none'
-                }`}
-              >
-                {msg.text}
-              </p>
-              <span className="text-xs text-gray-400">
-                {formatMessageTime(msg.createdAt)}
-              </span>
+              {/* Receiver's avatar (shown on left for received messages) */}
+              {!isMine && (
+                <img
+                  src={selectedUser.profilePic || assets.avatar_icon}
+                  alt={selectedUser.fullName}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                />
+              )}
+
+              <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                <p
+                  className={`p-2 max-w-[200px] text-sm rounded-lg break-words ${
+                    isMine
+                      ? 'bg-blue-500 text-white rounded-br-none'
+                      : 'bg-gray-200 text-black rounded-bl-none'
+                  }`}
+                >
+                  {msg.text}
+                </p>
+                <span className="text-xs text-gray-400 mt-1">
+                  {formatMessageTime(msg.createdAt)}
+                </span>
+              </div>
+
+              {/* Sender's avatar (shown on right for sent messages) */}
+              {isMine && (
+                <img
+                  src={authUser.profilePic || assets.avatar_icon}
+                  alt={authUser.fullName}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                />
+              )}
             </div>
           )
         })}
@@ -201,6 +223,7 @@ const ChatContainer = () => {
         <CallBox
           socket={socket}
           user={selectedUser}
+          currentUser={authUser}
           type={callType}
           close={() => {
             setShowCall(false)

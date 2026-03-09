@@ -61,6 +61,7 @@ const App = () => {
       {incoming && !active && (
         <CallGrup
           type={incoming.type}
+          user={incoming.caller || { _id: incoming.from }}
           onAccept={acceptCall}
           onReject={rejectCall}
         />
@@ -70,7 +71,8 @@ const App = () => {
       {active && incoming && (
         <CallBox
           socket={socket}
-          user={{ _id: incoming.from }}
+          user={incoming.caller || { _id: incoming.from }}
+          currentUser={authUser}
           offer={incoming.offer}
           type={incoming.type}
           isReceiver={true}
