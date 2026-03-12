@@ -24,13 +24,26 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" }
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun3.l.google.com:19302" },
+        { urls: "stun:stun4.l.google.com:19302" }
       ],
+      iceCandidatePoolSize: 10
     });
 
-    pc.current.ontrack = (e) => {
-      if (remoteVideo.current) {
+    pc.current.ontrack = async (e) => {
+      console.log("📥 Track received:", e.track.kind);
+      if (remoteVideo.current && e.streams[0]) {
         remoteVideo.current.srcObject = e.streams[0];
+        
+        // Force play on mobile browsers
+        try {
+          await remoteVideo.current.play();
+          console.log("✅ Remote video/audio playing");
+        } catch (err) {
+          console.log("⚠️ Autoplay prevented:", err);
+          // User interaction may be needed
+        }
       }
       // Start timer when remote track is received (call connected)
       if (!callConnected) {
@@ -96,66 +109,94 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
 
   // 🔥 START CALL (Caller)
   const startCall = async () => {
-    const useVideo = type === "video";
-    const constraints = {
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      },
-      video: useVideo ? {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: "user"
-      } : false
-    };
-    
-    streamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+    try {
+      const useVideo = type === "video";
+      
+      // Simpler constraints for better mobile compatibility
+      const constraints = {
+        audio: true,
+        video: useVideo ? {
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          facingMode: "user"
+        } : false
+      };
+      
+      console.log("📞 Starting call with constraints:", constraints);
+      streamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("✅ Got local stream:", streamRef.current.getTracks());
 
-    if (localVideo.current) {
-      localVideo.current.srcObject = streamRef.current;
+      if (localVideo.current) {
+        localVideo.current.srcObject = streamRef.current;
+        // Ensure local video plays
+        try {
+          await localVideo.current.play();
+        } catch (err) {
+          console.log("Local video play error:", err);
+        }
+      }
+      
+      streamRef.current.getTracks().forEach((t) => {
+        console.log("➕ Adding track:", t.kind, t.enabled);
+        pc.current.addTrack(t, streamRef.current);
+      });
+
+      const offer = await pc.current.createOffer();
+      await pc.current.setLocalDescription(offer);
+
+      socket.emit("call-user", { to: user._id, offer, type });
+    } catch (error) {
+      console.error("❌ Error starting call:", error);
+      alert("Could not access camera/microphone: " + error.message);
+      close();
     }
-    streamRef.current.getTracks().forEach((t) =>
-      pc.current.addTrack(t, streamRef.current)
-    );
-
-    const offer = await pc.current.createOffer();
-    await pc.current.setLocalDescription(offer);
-
-    socket.emit("call-user", { to: user._id, offer, type });
   };
 
   // 🔥 ACCEPT CALL (Receiver)
   const acceptCall = async () => {
-    const useVideo = type === "video";
-    const constraints = {
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      },
-      video: useVideo ? {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: "user"
-      } : false
-    };
-    
-    streamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+    try {
+      const useVideo = type === "video";
+      
+      // Simpler constraints for better mobile compatibility
+      const constraints = {
+        audio: true,
+        video: useVideo ? {
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          facingMode: "user"
+        } : false
+      };
+      
+      console.log("📞 Accepting call with constraints:", constraints);
+      streamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("✅ Got local stream:", streamRef.current.getTracks());
 
-    if (localVideo.current) {
-      localVideo.current.srcObject = streamRef.current;
+      if (localVideo.current) {
+        localVideo.current.srcObject = streamRef.current;
+        // Ensure local video plays
+        try {
+          await localVideo.current.play();
+        } catch (err) {
+          console.log("Local video play error:", err);
+        }
+      }
+      
+      streamRef.current.getTracks().forEach((t) => {
+        console.log("➕ Adding track:", t.kind, t.enabled);
+        pc.current.addTrack(t, streamRef.current);
+      });
+
+      await pc.current.setRemoteDescription(offer);
+
+      const answer = await pc.current.createAnswer();
+      await pc.current.setLocalDescription(answer);
+
+      socket.emit("answer-call", { to: user._id, answer });
+    } catch (error) {
+      console.error("❌ Error accepting call:", error);
+      alert("Could not access camera/microphone: " + error.message);
+      close();
     }
-    streamRef.current.getTracks().forEach((t) =>
-      pc.current.addTrack(t, streamRef.current)
-    );
-
-    await pc.current.setRemoteDescription(offer);
-
-    const answer = await pc.current.createAnswer();
-    await pc.current.setLocalDescription(answer);
-
-    socket.emit("answer-call", { to: user._id, answer });
   };
 
   useEffect(() => {
@@ -203,6 +244,9 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
             ref={remoteVideo} 
             autoPlay 
             playsInline
+            controls={false}
+            webkit-playsinline="true"
+            x-webkit-airplay="allow"
             className="w-full h-full object-cover" 
           />
           
@@ -212,6 +256,8 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
             autoPlay
             playsInline
             muted
+            controls={false}
+            webkit-playsinline="true"
             className="w-24 h-32 sm:w-32 sm:h-44 absolute top-20 sm:top-24 right-4 sm:right-6 rounded-lg border-2 border-white/30 shadow-2xl object-cover"
           />
           
@@ -324,8 +370,24 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
           </div>
           
           {/* Hidden video elements for audio call */}
-          <video ref={remoteVideo} autoPlay playsInline className="hidden" />
-          <video ref={localVideo} autoPlay playsInline muted className="hidden" />
+          <video 
+            ref={remoteVideo} 
+            autoPlay 
+            playsInline 
+            controls={false}
+            webkit-playsinline="true"
+            x-webkit-airplay="allow"
+            className="hidden" 
+          />
+          <video 
+            ref={localVideo} 
+            autoPlay 
+            playsInline 
+            muted 
+            controls={false}
+            webkit-playsinline="true"
+            className="hidden" 
+          />
         </>
       )}
 
