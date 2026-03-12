@@ -154,15 +154,27 @@ const ChatContainer = () => {
               )}
 
               <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                <p
-                  className={`p-2 max-w-[200px] text-sm rounded-lg break-words ${
-                    isMine
-                      ? 'bg-blue-500 text-white rounded-br-none'
-                      : 'bg-gray-200 text-black rounded-bl-none'
-                  }`}
-                >
-                  {msg.text}
-                </p>
+                {msg.image && (
+                  <img
+                    src={msg.image}
+                    alt="Attached"
+                    loading="lazy"
+                    className={`max-w-[200px] max-h-[300px] rounded-lg object-cover mb-1 ${
+                      isMine ? 'rounded-br-none' : 'rounded-bl-none'
+                    }`}
+                  />
+                )}
+                {msg.text && (
+                  <p
+                    className={`p-2 max-w-[200px] text-sm rounded-lg break-words ${
+                      isMine
+                        ? 'bg-blue-500 text-white rounded-br-none'
+                        : 'bg-gray-200 text-black rounded-bl-none'
+                    }`}
+                  >
+                    {msg.text}
+                  </p>
+                )}
                 <span className="text-xs text-gray-400 mt-1">
                   {formatMessageTime(msg.createdAt)}
                 </span>

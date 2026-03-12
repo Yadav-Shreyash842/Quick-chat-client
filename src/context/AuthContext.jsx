@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [authUser, setAuthUser] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
 
   
 
@@ -23,8 +24,13 @@ const checkAuth = async () => {
     socket?.disconnect();
     setAuthUser(null);
     setOnlineUsers([]);
+    setIsCheckingAuth(false);
     return;
   }
+
+  // Prevent multiple simultaneous auth checks
+  if (isCheckingAuth) return;
+  setIsCheckingAuth(true);
 
   try {
     // no need for explicit headers, axios default token will be used
@@ -35,6 +41,11 @@ const checkAuth = async () => {
     }
   } catch (error) {
     toast.error(error.message);
+    // Clear invalid token
+    localStorage.removeItem("token");
+    setToken(null);
+  } finally {
+    setIsCheckingAuth(false);
   }
 };
 
@@ -141,10 +152,11 @@ const updateProfile = async (body) => {
 
     console.log("connectSocket: creating socket for user:", userData._id);
     const newSocket = io(backendUrl, {
-      query: { userId: userData._id }
+      query: { userId: userData._id },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
     });
-
-    setSocket(newSocket);
 
     newSocket.on("getOnlineUsers", (userIds) => {
       console.log("getOnlineUsers received:", userIds);
@@ -154,15 +166,24 @@ const updateProfile = async (body) => {
     newSocket.on("connect", () => {
       console.log("Socket connected:", newSocket.id, "for user:", userData._id);
     });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    setSocket(newSocket);
   }
 
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common["token"] = token;
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      
     }
-    checkAuth();
+    
+    // Only check auth if we don't already have user data
+    if (token && !authUser && !isCheckingAuth) {
+      checkAuth();
+    }
   }, [token]);
 
   const value = {
