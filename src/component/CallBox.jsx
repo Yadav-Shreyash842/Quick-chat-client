@@ -21,30 +21,11 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
 
   useEffect(() => {
     pc.current = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "stun:stun3.l.google.com:19302" },
-        { urls: "stun:stun4.l.google.com:19302" }
-      ],
-      iceCandidatePoolSize: 10
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
 
-    pc.current.ontrack = async (e) => {
-      console.log("📥 Track received:", e.track.kind);
-      if (remoteVideo.current && e.streams[0]) {
-        remoteVideo.current.srcObject = e.streams[0];
-        
-        // Force play on mobile browsers
-        try {
-          await remoteVideo.current.play();
-          console.log("✅ Remote video/audio playing");
-        } catch (err) {
-          console.log("⚠️ Autoplay prevented:", err);
-          // User interaction may be needed
-        }
-      }
+    pc.current.ontrack = (e) => {
+      remoteVideo.current.srcObject = e.streams[0];
       // Start timer when remote track is received (call connected)
       if (!callConnected) {
         setCallConnected(true);
@@ -109,94 +90,42 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
 
   // 🔥 START CALL (Caller)
   const startCall = async () => {
-    try {
-      const useVideo = type === "video";
-      
-      // Simpler constraints for better mobile compatibility
-      const constraints = {
-        audio: true,
-        video: useVideo ? {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          facingMode: "user"
-        } : false
-      };
-      
-      console.log("📞 Starting call with constraints:", constraints);
-      streamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("✅ Got local stream:", streamRef.current.getTracks());
+    const useVideo = type === "video";
+    streamRef.current = await navigator.mediaDevices.getUserMedia({
+      video: useVideo,
+      audio: true,
+    });
 
-      if (localVideo.current) {
-        localVideo.current.srcObject = streamRef.current;
-        // Ensure local video plays
-        try {
-          await localVideo.current.play();
-        } catch (err) {
-          console.log("Local video play error:", err);
-        }
-      }
-      
-      streamRef.current.getTracks().forEach((t) => {
-        console.log("➕ Adding track:", t.kind, t.enabled);
-        pc.current.addTrack(t, streamRef.current);
-      });
+    localVideo.current.srcObject = streamRef.current;
+    streamRef.current.getTracks().forEach((t) =>
+      pc.current.addTrack(t, streamRef.current)
+    );
 
-      const offer = await pc.current.createOffer();
-      await pc.current.setLocalDescription(offer);
+    const offer = await pc.current.createOffer();
+    await pc.current.setLocalDescription(offer);
 
-      socket.emit("call-user", { to: user._id, offer, type });
-    } catch (error) {
-      console.error("❌ Error starting call:", error);
-      alert("Could not access camera/microphone: " + error.message);
-      close();
-    }
+    socket.emit("call-user", { to: user._id, offer, type });
   };
 
   // 🔥 ACCEPT CALL (Receiver)
   const acceptCall = async () => {
-    try {
-      const useVideo = type === "video";
-      
-      // Simpler constraints for better mobile compatibility
-      const constraints = {
-        audio: true,
-        video: useVideo ? {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          facingMode: "user"
-        } : false
-      };
-      
-      console.log("📞 Accepting call with constraints:", constraints);
-      streamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("✅ Got local stream:", streamRef.current.getTracks());
+    const useVideo = type === "video";
+    streamRef.current = await navigator.mediaDevices.getUserMedia({
+      video: useVideo,
+      audio: true,
+    });
 
-      if (localVideo.current) {
-        localVideo.current.srcObject = streamRef.current;
-        // Ensure local video plays
-        try {
-          await localVideo.current.play();
-        } catch (err) {
-          console.log("Local video play error:", err);
-        }
-      }
-      
-      streamRef.current.getTracks().forEach((t) => {
-        console.log("➕ Adding track:", t.kind, t.enabled);
-        pc.current.addTrack(t, streamRef.current);
-      });
+    localVideo.current.srcObject = streamRef.current;
+    streamRef.current.getTracks().forEach((t) =>
+      pc.current.addTrack(t, streamRef.current)
+    );
 
-      await pc.current.setRemoteDescription(offer);
+    await pc.current.setRemoteDescription(offer);
 
-      const answer = await pc.current.createAnswer();
-      await pc.current.setLocalDescription(answer);
+    const answer = await pc.current.createAnswer();
+    await pc.current.setLocalDescription(answer);
 
-      socket.emit("answer-call", { to: user._id, answer });
-    } catch (error) {
-      console.error("❌ Error accepting call:", error);
-      alert("Could not access camera/microphone: " + error.message);
-      close();
-    }
+    socket.emit("answer-call", { to: user._id, answer });
   };
 
   useEffect(() => {
@@ -225,12 +154,12 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-gray-800 z-[9999] flex flex-col touch-none">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-gray-800 z-50 flex flex-col">
       {/* Header with user info and timer */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/60 to-transparent p-4 sm:p-6 touch-none">
+      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/60 to-transparent p-6">
         <div className="flex flex-col items-center">
-          <h2 className="text-white text-lg sm:text-2xl font-semibold">{user?.fullName || user?.name || 'User'}</h2>
-          <p className="text-white/80 text-sm sm:text-lg mt-1">
+          <h2 className="text-white text-2xl font-semibold">{user?.fullName || user?.name || 'User'}</h2>
+          <p className="text-white/80 text-lg mt-1">
             {callConnected ? formatDuration(callDuration) : 'Connecting...'}
           </p>
         </div>
@@ -243,10 +172,6 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
           <video 
             ref={remoteVideo} 
             autoPlay 
-            playsInline
-            controls={false}
-            webkit-playsinline="true"
-            x-webkit-airplay="allow"
             className="w-full h-full object-cover" 
           />
           
@@ -254,48 +179,45 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
           <video
             ref={localVideo}
             autoPlay
-            playsInline
             muted
-            controls={false}
-            webkit-playsinline="true"
-            className="w-24 h-32 sm:w-32 sm:h-44 absolute top-20 sm:top-24 right-4 sm:right-6 rounded-lg border-2 border-white/30 shadow-2xl object-cover"
+            className="w-32 h-44 absolute top-24 right-6 rounded-lg border-2 border-white/30 shadow-2xl object-cover"
           />
           
           {/* Profile images placeholder for when video not connected */}
           {!callConnected && (
-            <div className="absolute inset-0 flex items-center justify-center px-4">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4">
+                <div className="flex items-center justify-center gap-8 mb-4">
                   {/* Current User */}
                   {currentUser?.profilePic ? (
                     <img 
                       src={currentUser.profilePic} 
                       alt={currentUser?.fullName}
-                      className="w-16 h-16 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white/20 shadow-lg"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg"
                     />
                   ) : (
-                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white text-2xl sm:text-4xl font-bold shadow-lg border-4 border-white/20">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg border-4 border-white/20">
                       {currentUser?.fullName?.charAt(0)?.toUpperCase() || 'Y'}
                     </div>
                   )}
                   
                   {/* Connecting Icon */}
-                  <div className="text-white text-2xl sm:text-3xl animate-pulse">↔</div>
+                  <div className="text-white text-3xl animate-pulse">↔</div>
                   
                   {/* Remote User */}
                   {user?.profilePic ? (
                     <img 
                       src={user.profilePic} 
                       alt={user?.fullName || user?.name}
-                      className="w-16 h-16 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-white/20 shadow-lg"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg"
                     />
                   ) : (
-                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl sm:text-4xl font-bold shadow-lg border-4 border-white/20">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg border-4 border-white/20">
                       {user?.fullName?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                   )}
                 </div>
-                <p className="text-white text-base sm:text-xl mt-4">Connecting video...</p>
+                <p className="text-white text-xl mt-4">Connecting video...</p>
               </div>
             </div>
           )}
@@ -303,10 +225,10 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
       ) : (
         /* Audio Call Layout - Show both profile images */
         <>
-          <div className="flex-1 flex items-center justify-center px-4">
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               {/* Both Users Profile Images Side by Side */}
-              <div className="flex items-center justify-center gap-6 sm:gap-12 mb-8">
+              <div className="flex items-center justify-center gap-12 mb-8">
                 {/* Current User Profile */}
                 <div className="text-center">
                   <div className="relative mb-3">
@@ -314,10 +236,10 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
                       <img 
                         src={currentUser.profilePic} 
                         alt={currentUser?.fullName}
-                        className="w-20 h-20 sm:w-32 sm:h-32 rounded-full object-cover shadow-2xl border-4 border-white/20"
+                        className="w-32 h-32 rounded-full object-cover shadow-2xl border-4 border-white/20"
                       />
                     ) : (
-                      <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white text-3xl sm:text-5xl font-bold shadow-2xl border-4 border-white/20">
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl border-4 border-white/20">
                         {currentUser?.fullName?.charAt(0)?.toUpperCase() || 'Y'}
                       </div>
                     )}
@@ -325,17 +247,17 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
                       <div className="absolute inset-0 rounded-full border-4 border-green-400 animate-ping opacity-75"></div>
                     )}
                   </div>
-                  <p className="text-white/80 text-xs sm:text-sm font-medium">You</p>
+                  <p className="text-white/80 text-sm font-medium">You</p>
                 </div>
                 
                 {/* Audio Wave Animation */}
                 <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-end gap-1 h-8 sm:h-12">
-                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '15px'}}></div>
-                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '25px', animationDelay: '0.1s'}}></div>
-                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '18px', animationDelay: '0.2s'}}></div>
-                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '30px', animationDelay: '0.3s'}}></div>
-                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '22px', animationDelay: '0.4s'}}></div>
+                  <div className="flex items-end gap-1 h-12">
+                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '20px'}}></div>
+                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '35px', animationDelay: '0.1s'}}></div>
+                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '25px', animationDelay: '0.2s'}}></div>
+                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '40px', animationDelay: '0.3s'}}></div>
+                    <div className={`w-1 bg-green-400 rounded-full ${callConnected ? 'animate-pulse' : ''}`} style={{height: '30px', animationDelay: '0.4s'}}></div>
                   </div>
                   <p className="text-green-400 text-xs">{callConnected ? 'Connected' : 'Calling...'}</p>
                 </div>
@@ -347,10 +269,10 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
                       <img 
                         src={user.profilePic} 
                         alt={user?.fullName || user?.name}
-                        className="w-20 h-20 sm:w-32 sm:h-32 rounded-full object-cover shadow-2xl border-4 border-white/20"
+                        className="w-32 h-32 rounded-full object-cover shadow-2xl border-4 border-white/20"
                       />
                     ) : (
-                      <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl sm:text-5xl font-bold shadow-2xl border-4 border-white/20">
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-5xl font-bold shadow-2xl border-4 border-white/20">
                         {user?.fullName?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
                     )}
@@ -358,36 +280,20 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
                       <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
                     )}
                   </div>
-                  <p className="text-white/80 text-xs sm:text-sm font-medium">{user?.fullName || user?.name || 'User'}</p>
+                  <p className="text-white/80 text-sm font-medium">{user?.fullName || user?.name || 'User'}</p>
                 </div>
               </div>
               
               {/* Call Duration */}
-              <p className="text-white/90 text-xl sm:text-2xl font-semibold">
+              <p className="text-white/90 text-2xl font-semibold">
                 {callConnected ? formatDuration(callDuration) : 'Connecting...'}
               </p>
             </div>
           </div>
           
           {/* Hidden video elements for audio call */}
-          <video 
-            ref={remoteVideo} 
-            autoPlay 
-            playsInline 
-            controls={false}
-            webkit-playsinline="true"
-            x-webkit-airplay="allow"
-            className="hidden" 
-          />
-          <video 
-            ref={localVideo} 
-            autoPlay 
-            playsInline 
-            muted 
-            controls={false}
-            webkit-playsinline="true"
-            className="hidden" 
-          />
+          <video ref={remoteVideo} autoPlay className="hidden" />
+          <video ref={localVideo} autoPlay muted className="hidden" />
         </>
       )}
 

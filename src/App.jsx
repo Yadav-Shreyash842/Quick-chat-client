@@ -37,7 +37,7 @@ const App = () => {
   return (
     <div
       style={{ backgroundImage: `url(${assets.bgImage})` }}
-      className="bg-no-repeat bg-center bg-cover min-h-screen w-full h-screen overflow-hidden fixed inset-0"
+      className="bg-no-repeat bg-center bg-cover min-h-screen"
     >
       <Toaster />
 
