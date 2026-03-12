@@ -225,9 +225,9 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-gray-800 z-50 flex flex-col">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 to-gray-800 z-[9999] flex flex-col touch-none">
       {/* Header with user info and timer */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/60 to-transparent p-4 sm:p-6">
+      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/60 to-transparent p-4 sm:p-6 touch-none">
         <div className="flex flex-col items-center">
           <h2 className="text-white text-lg sm:text-2xl font-semibold">{user?.fullName || user?.name || 'User'}</h2>
           <p className="text-white/80 text-sm sm:text-lg mt-1">

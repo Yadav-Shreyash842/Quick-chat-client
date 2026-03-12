@@ -17,7 +17,7 @@ const RightSidebar = () => {
   return (
     selectedUser && (
       <div
-        className={`bg-[#8185B2]/10 text-white w-full relative overflow-y-scroll ${
+        className={`bg-[#8185B2]/10 text-white w-full h-full relative overflow-y-auto ${
           selectedUser ? 'max-md:hidden' : ''
         }`}
       >
@@ -38,7 +38,7 @@ const RightSidebar = () => {
         <hr className="border-[#ffffff50] my-4" />
         <div className="px-5 text-xs">
           <p>Media</p>
-          <div className="mt-2 max-h-[200px] overflow-y-scroll grid grid-cols-2 gap-4 opacity-80">
+          <div className="mt-2 max-h-[200px] overflow-y-auto grid grid-cols-2 gap-4 opacity-80">
             {msgImages.map((url, index) => (
               <div
                 key={index}

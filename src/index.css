@@ -21,7 +21,6 @@ html, body {
   position: fixed;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
 }
 
 #root {

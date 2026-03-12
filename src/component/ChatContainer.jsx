@@ -68,10 +68,10 @@ const ChatContainer = () => {
 
   // =================================================
   return selectedUser ? (
-    <div className="h-full overflow-scroll relative backdrop-blur-lg">
+    <div className="h-full w-full overflow-hidden relative backdrop-blur-lg flex flex-col">
 
       {/* ================= HEADER (NOTHING REMOVED) ================= */}
-      <div className="flex items-center gap-3 py-3 px-4 border-b border-stone-500">
+      <div className="flex items-center gap-3 py-3 px-4 border-b border-stone-500 flex-shrink-0">
         <img
           src={selectedUser.profilePic || assets.avatar_icon}
           alt=""
@@ -132,7 +132,7 @@ const ChatContainer = () => {
       </div>
 
       {/* ================= CHAT AREA ================= */}
-      <div className="flex flex-col h-[calc(100%-120px)] overflow-y-scroll p-3 pb-6">
+      <div className="flex-1 flex flex-col overflow-y-auto p-3 pb-6">
         {messages.map((msg) => {
           const senderId = msg.sendrId || msg.senderId
           const isMine = senderId === authUser?._id
@@ -195,7 +195,7 @@ const ChatContainer = () => {
       </div>
 
       {/* ================= INPUT ================= */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-center gap-3 p-3">
+      <div className="flex-shrink-0 flex items-center gap-3 p-3 border-t border-stone-500/30 bg-black/20">
         <div className="flex-1 flex items-center bg-gray-100/12 px-3 rounded-full">
           <input
             value={input}
@@ -245,7 +245,7 @@ const ChatContainer = () => {
       )}
     </div>
   ) : (
-    <div className="flex flex-col items-center justify-center gap-2 text-gray-500 bg-white/10 max-md:hidden">
+    <div className="h-full flex flex-col items-center justify-center gap-2 text-gray-500 bg-white/10 max-md:hidden">
       <img src={assets.logo_icon} className="max-w-16" alt="" />
       <p className="text-lg text-white">chat anytime, anywhere</p>
     </div>
