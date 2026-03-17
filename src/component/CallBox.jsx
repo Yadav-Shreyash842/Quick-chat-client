@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 import ActionBar from "./ActionBar";
+import { ChatContext } from "../context/ChatContext";
 
 const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) => {
+  const { addCallRecord } = useContext(ChatContext);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
   const pc = useRef(null);
@@ -52,12 +54,17 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
     // remote ended the call
     socket.on("call-ended", () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      try {
-        streamRef.current?.getTracks()?.forEach((t) => t.stop());
-      } catch (err) {}
-      try {
-        pc.current?.close();
-      } catch (err) {}
+      addCallRecord({
+        userId: user._id,
+        userName: user.fullName || user.name || 'User',
+        userPic: user.profilePic || null,
+        type,
+        direction: isReceiver ? 'incoming' : 'outgoing',
+        duration: callConnected ? callDuration : null,
+        time: new Date().toISOString(),
+      });
+      try { streamRef.current?.getTracks()?.forEach((t) => t.stop()); } catch (err) {}
+      try { pc.current?.close(); } catch (err) {}
       close();
     });
 
@@ -141,15 +148,21 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
     }
   }, [isReceiver, type]);
 
-  const endCall = () => {
+  const endCall = (wasConnected, duration) => {
     if (timerRef.current) clearInterval(timerRef.current);
     socket.emit("end-call", { to: user._id });
-    try {
-      streamRef.current?.getTracks()?.forEach((t) => t.stop());
-    } catch (err) {}
-    try {
-      pc.current?.close();
-    } catch (err) {}
+    // save call record
+    addCallRecord({
+      userId: user._id,
+      userName: user.fullName || user.name || 'User',
+      userPic: user.profilePic || null,
+      type,
+      direction: isReceiver ? 'incoming' : 'outgoing',
+      duration: wasConnected ?? callConnected ? duration ?? callDuration : null,
+      time: new Date().toISOString(),
+    });
+    try { streamRef.current?.getTracks()?.forEach((t) => t.stop()); } catch (err) {}
+    try { pc.current?.close(); } catch (err) {}
     close();
   };
 
@@ -308,7 +321,7 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
             const t = streamRef.current?.getVideoTracks?.()[0];
             if (t) t.enabled = !t.enabled;
           }}
-          end={endCall}
+          end={() => endCall(callConnected, callDuration)}
         />
       </div>
     </div>

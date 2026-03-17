@@ -13,25 +13,32 @@ import { CallContext } from './context/CallContext'
 
 import CallGrup from './component/CallGrup'
 import CallBox from './component/CallBox'
+import GroupCallBox from './component/GroupCallBox'
 
 const App = () => {
   const { authUser, socket } = useContext(AuthContext)
-  const { incoming, setIncoming, active, setActive } = useContext(CallContext)
+  const { incoming, setIncoming, active, setActive, incomingGroupCall, setIncomingGroupCall, activeGroupCall, setActiveGroupCall } = useContext(CallContext)
 
-  // ✅ ACCEPT CALL
-  const acceptCall = () => {
-    setActive(true)
-    // ❌ incoming ko yahin null mat karo
-    // warna CallBox ko data nahi milega
-  }
+  const acceptCall = () => setActive(true)
 
-  // ❌ REJECT CALL
   const rejectCall = () => {
-    if (incoming?.from) {
-      socket.emit('reject-call', { to: incoming.from })
-    }
+    if (incoming?.from) socket.emit('reject-call', { to: incoming.from })
     setIncoming(null)
     setActive(false)
+  }
+
+  const acceptGroupCall = () => {
+    const { groupId, groupName, groupMembers, type, callId } = incomingGroupCall
+    const group = { _id: groupId, name: groupName, members: groupMembers || [] }
+    setActiveGroupCall({ group, type, callId, isReceiver: true })
+    setIncomingGroupCall(null)
+  }
+
+  const rejectGroupCall = () => {
+    if (incomingGroupCall?.initiatorId) {
+      socket.emit('group-call-rejected', { to: incomingGroupCall.initiatorId, from: authUser._id })
+    }
+    setIncomingGroupCall(null)
   }
 
   return (
@@ -41,23 +48,13 @@ const App = () => {
     >
       <Toaster />
 
-      {/* ================= ROUTES ================= */}
       <Routes>
-        <Route
-          path="/"
-          element={authUser ? <HomePage /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/login"
-          element={!authUser ? <LoginPage /> : <Navigate to="/" />}
-        />
-        <Route
-          path="/profile"
-          element={authUser ? <ProfilePage /> : <Navigate to="/login" />}
-        />
+        <Route path="/" element={authUser ? <HomePage /> : <Navigate to="/login" />} />
+        <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
+        <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
       </Routes>
 
-      {/* ================= INCOMING CALL POPUP ================= */}
+      {/* 1-on-1 incoming call */}
       {incoming && !active && (
         <CallGrup
           type={incoming.type}
@@ -66,8 +63,6 @@ const App = () => {
           onReject={rejectCall}
         />
       )}
-
-      {/* ================= ACTIVE CALL SCREEN ================= */}
       {active && incoming && (
         <CallBox
           socket={socket}
@@ -76,10 +71,28 @@ const App = () => {
           offer={incoming.offer}
           type={incoming.type}
           isReceiver={true}
-          close={() => {
-            setActive(false)
-            setIncoming(null)
-          }}
+          close={() => { setActive(false); setIncoming(null) }}
+        />
+      )}
+
+      {/* Incoming group call popup */}
+      {incomingGroupCall && !activeGroupCall && (
+        <CallGrup
+          type={incomingGroupCall.type}
+          user={{ fullName: `${incomingGroupCall.initiatorName} · ${incomingGroupCall.groupName}`, profilePic: incomingGroupCall.initiatorPic }}
+          onAccept={acceptGroupCall}
+          onReject={rejectGroupCall}
+        />
+      )}
+
+      {/* Active group call (receiver only — initiator renders it inside ChatContainer) */}
+      {activeGroupCall?.isReceiver && (
+        <GroupCallBox
+          group={activeGroupCall.group}
+          type={activeGroupCall.type}
+          callId={activeGroupCall.callId || null}
+          isReceiver={true}
+          close={() => setActiveGroupCall(null)}
         />
       )}
     </div>
