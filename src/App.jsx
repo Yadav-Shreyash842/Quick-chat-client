@@ -28,9 +28,9 @@ const App = () => {
   }
 
   const acceptGroupCall = () => {
-    const { groupId, groupName, groupMembers, type, callId } = incomingGroupCall
+    const { groupId, groupName, groupMembers, type, callId, initiatorId } = incomingGroupCall
     const group = { _id: groupId, name: groupName, members: groupMembers || [] }
-    setActiveGroupCall({ group, type, callId, isReceiver: true })
+    setActiveGroupCall({ group, type, callId, initiatorId, isReceiver: true })
     setIncomingGroupCall(null)
   }
 
@@ -91,6 +91,7 @@ const App = () => {
           group={activeGroupCall.group}
           type={activeGroupCall.type}
           callId={activeGroupCall.callId || null}
+          initiatorId={activeGroupCall.initiatorId || null}
           isReceiver={true}
           close={() => setActiveGroupCall(null)}
         />

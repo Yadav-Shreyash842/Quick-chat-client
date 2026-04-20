@@ -70,7 +70,7 @@ const Sidebar = () => {
   }
 
   return (
-    <div className={`bg-[#8185B2]/10 h-full flex flex-col rounded-r-xl text-white ${
+    <div className={`bg-[#8185B2]/10 h-full min-h-0 flex flex-col rounded-r-xl text-white ${
       selectedUser || selectedGroup ? 'max-md:hidden' : ''
     }`}>
 
@@ -131,7 +131,7 @@ const Sidebar = () => {
       </div>
 
       {/* ── TAB CONTENT ── */}
-      <div className='flex-1 overflow-y-auto px-1'>
+      <div className='flex-1 min-h-0 overflow-y-auto px-1'>
 
         {/* CHATS TAB */}
         {activeTab === 'chats' && (

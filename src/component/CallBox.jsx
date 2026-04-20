@@ -6,8 +6,11 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
   const { addCallRecord } = useContext(ChatContext);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
+  const remoteAudio = useRef(null);
   const pc = useRef(null);
   const streamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  const pendingIceCandidates = useRef([]);
   
   // Call timer state
   const [callDuration, setCallDuration] = useState(0);
@@ -22,12 +25,39 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
   };
 
   useEffect(() => {
+    remoteStreamRef.current = new MediaStream();
+
+    const flushPendingIceCandidates = async () => {
+      if (!pc.current?.remoteDescription) return;
+      const pending = [...pendingIceCandidates.current];
+      pendingIceCandidates.current = [];
+      for (const candidate of pending) {
+        try {
+          await pc.current.addIceCandidate(candidate);
+        } catch (err) {}
+      }
+    };
+
     pc.current = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
 
     pc.current.ontrack = (e) => {
-      remoteVideo.current.srcObject = e.streams[0];
+      const remoteStream = remoteStreamRef.current || new MediaStream();
+      remoteStreamRef.current = remoteStream;
+      if (!remoteStream.getTracks().some((t) => t.id === e.track.id)) {
+        remoteStream.addTrack(e.track);
+      }
+
+      if (remoteVideo.current) {
+        remoteVideo.current.srcObject = remoteStream;
+      }
+      if (remoteAudio.current) {
+        remoteAudio.current.srcObject = remoteStream;
+        remoteAudio.current.muted = false;
+        remoteAudio.current.volume = 1;
+        remoteAudio.current.play?.().catch(() => {});
+      }
       // Start timer when remote track is received (call connected)
       if (!callConnected) {
         setCallConnected(true);
@@ -45,10 +75,18 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
 
     socket.on("call-answered", async ({ answer }) => {
       await pc.current.setRemoteDescription(answer);
+      await flushPendingIceCandidates();
     });
 
-    socket.on("ice-candidate", ({ candidate }) => {
-      pc.current.addIceCandidate(candidate);
+    socket.on("ice-candidate", async ({ candidate }) => {
+      if (!pc.current) return;
+      if (pc.current.remoteDescription) {
+        try {
+          await pc.current.addIceCandidate(candidate);
+        } catch (err) {}
+      } else {
+        pendingIceCandidates.current.push(candidate);
+      }
     });
 
     // remote ended the call
@@ -79,6 +117,10 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
       try {
         pc.current?.close();
       } catch (err) {}
+      try {
+        remoteStreamRef.current?.getTracks()?.forEach((t) => t.stop());
+      } catch (err) {}
+      remoteStreamRef.current = null;
     };
   }, []);
   
@@ -100,7 +142,11 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
     const useVideo = type === "video";
     streamRef.current = await navigator.mediaDevices.getUserMedia({
       video: useVideo,
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
     });
 
     localVideo.current.srcObject = streamRef.current;
@@ -119,7 +165,11 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
     const useVideo = type === "video";
     streamRef.current = await navigator.mediaDevices.getUserMedia({
       video: useVideo,
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
     });
 
     localVideo.current.srcObject = streamRef.current;
@@ -128,6 +178,14 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
     );
 
     await pc.current.setRemoteDescription(offer);
+    if (pendingIceCandidates.current.length) {
+      for (const candidate of pendingIceCandidates.current) {
+        try {
+          await pc.current.addIceCandidate(candidate);
+        } catch (err) {}
+      }
+      pendingIceCandidates.current = [];
+    }
 
     const answer = await pc.current.createAnswer();
     await pc.current.setLocalDescription(answer);
@@ -185,6 +243,7 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
           <video 
             ref={remoteVideo} 
             autoPlay 
+            playsInline
             className="w-full h-full object-cover" 
           />
           
@@ -193,6 +252,7 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
             ref={localVideo}
             autoPlay
             muted
+            playsInline
             className="w-32 h-44 absolute top-24 right-6 rounded-lg border-2 border-white/30 shadow-2xl object-cover"
           />
           
@@ -305,10 +365,13 @@ const CallBox = ({ socket, user, offer, close, isReceiver, type, currentUser }) 
           </div>
           
           {/* Hidden video elements for audio call */}
-          <video ref={remoteVideo} autoPlay className="hidden" />
-          <video ref={localVideo} autoPlay muted className="hidden" />
+          <video ref={remoteVideo} autoPlay playsInline className="hidden" />
+          <video ref={localVideo} autoPlay muted playsInline className="hidden" />
         </>
       )}
+
+      {/* Dedicated audio sink to ensure remote voice is heard in both audio/video calls */}
+      <audio ref={remoteAudio} autoPlay playsInline className="absolute w-0 h-0 opacity-0 pointer-events-none" />
 
       {/* Action Bar at bottom */}
       <div className="absolute bottom-0 left-0 right-0 z-20">

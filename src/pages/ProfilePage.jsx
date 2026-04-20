@@ -53,6 +53,7 @@ const ProfilePage = () => {
             />
             upload profile image
           </label>
+          
 
           <input  
             onChange={(e) => setName(e.target.value)} 
