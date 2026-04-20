@@ -31,7 +31,7 @@ const PeerTile = ({ stream, name, pic }) => {
     if (ref.current && stream) ref.current.srcObject = stream;
   }, [stream]);
   return (
-    <div className="relative rounded-xl overflow-hidden bg-gray-800 flex items-center justify-center aspect-video">
+    <div className="relative rounded-xl overflow-hidden bg-gray-800 flex items-center justify-center aspect-video w-full max-w-full">
       <video ref={ref} autoPlay playsInline className="w-full h-full object-cover" />
       {!stream && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -267,13 +267,9 @@ const GroupCallBox = ({ group, type, callId: existingCallId, isReceiver, initiat
       {/* VIDEO / AUDIO GRID */}
       <div className="flex-1 overflow-y-auto p-4">
         {type === "video" ? (
-          <div className={`grid gap-3 h-full ${
-            Object.keys(remoteStreams).length === 0 ? "grid-cols-1" :
-            Object.keys(remoteStreams).length === 1 ? "grid-cols-2" :
-            Object.keys(remoteStreams).length <= 3 ? "grid-cols-2" : "grid-cols-3"
-          }`}>
+          <div className="grid gap-3 h-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max">
             {/* local */}
-            <div className="relative rounded-xl overflow-hidden bg-gray-800 aspect-video">
+            <div className="relative rounded-xl overflow-hidden bg-gray-800 aspect-video w-full max-w-full">
               <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
               <span className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-0.5 rounded-full">You</span>
               {camOff && (
