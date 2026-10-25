@@ -108,7 +108,12 @@ const ChatContainer = () => {
             {selectedGroup.name.charAt(0).toUpperCase()}
           </div>
         ) : (
-          <img src={headerPic || assets.avatar_icon} alt="" className="w-8 rounded-full" />
+          <img
+            src={headerPic || assets.avatar_icon}
+            alt=""
+            className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => { e.currentTarget.src = assets.avatar_icon; }}
+          />
         )}
 
         <p className="flex-1 text-lg text-white flex items-center gap-2">
@@ -172,7 +177,12 @@ const ChatContainer = () => {
               className={`flex items-end gap-2 mb-4 ${isMine ? 'justify-end' : 'justify-start'}`}
             >
               {!isMine && (
-                <img src={senderPic} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                <img
+                  src={senderPic}
+                  alt=""
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  onError={(e) => { e.currentTarget.src = assets.avatar_icon; }}
+                />
               )}
 
               <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
@@ -180,7 +190,12 @@ const ChatContainer = () => {
                   <span className="text-xs text-violet-300 mb-1 px-1">{senderName}</span>
                 )}
                 {msg.image && (
-                  <img src={msg.image} alt="img" className="max-w-[200px] rounded-lg mb-1" />
+                  <img
+                    src={msg.image}
+                    alt="img"
+                    className="max-w-[200px] rounded-lg mb-1"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
                 )}
                 {msg.text && (
                   <p className={`p-2 max-w-[200px] text-sm rounded-lg break-words ${
@@ -193,7 +208,12 @@ const ChatContainer = () => {
               </div>
 
               {isMine && (
-                <img src={authUser.profilePic || assets.avatar_icon} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                <img
+                  src={authUser.profilePic || assets.avatar_icon}
+                  alt=""
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  onError={(e) => { e.currentTarget.src = assets.avatar_icon; }}
+                />
               )}
             </div>
           )

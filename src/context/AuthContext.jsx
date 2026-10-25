@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }) => {
   // check if user is authenticated and if so, set the user data and connect the socket
 const checkAuth = async () => {
   if (!token) {
-    // no token => treat as logged out and ensure socket is cleaned up
     socket?.disconnect();
     setAuthUser(null);
     setOnlineUsers([]);
@@ -27,14 +26,23 @@ const checkAuth = async () => {
   }
 
   try {
-    // no need for explicit headers, axios default token will be used
     const { data } = await axios.get("/api/auth/check");
     if (data.success) {
       setAuthUser(data.user);
       connectSocket(data.user);
+    } else {
+      localStorage.removeItem("token");
+      setToken(null);
+      setAuthUser(null);
     }
   } catch (error) {
-    toast.error(error.message);
+    // If token is expired or unauthorized, reset auth state cleanly without showing red toast
+    localStorage.removeItem("token");
+    setToken(null);
+    setAuthUser(null);
+    setOnlineUsers([]);
+    socket?.disconnect();
+    setSocket(null);
   }
 };
 

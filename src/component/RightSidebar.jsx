@@ -35,6 +35,7 @@ const RightSidebar = () => {
                   src={member.profilePic || assets.avatar_icon}
                   className="w-7 h-7 rounded-full object-cover"
                   alt=""
+                  onError={(e) => { e.currentTarget.src = assets.avatar_icon; }}
                 />
                 <span className="text-xs">{member.fullName}</span>
                 {onlineUsers.includes(member._id) && (
@@ -51,6 +52,7 @@ const RightSidebar = () => {
             src={selectedUser?.profilePic || assets.avatar_icon}
             alt=""
             className="w-20 aspect-[1/1] rounded-full"
+            onError={(e) => { e.currentTarget.src = assets.avatar_icon; }}
           />
           <h1 className="px-10 text-xl font-medium mx-auto flex items-center gap-2">
             {onlineUsers.includes(selectedUser._id) && (

@@ -152,6 +152,7 @@ const Sidebar = () => {
                     src={user?.profilePic || assets.avatar_icon}
                     alt={user.fullName}
                     className='w-[38px] h-[38px] rounded-full object-cover'
+                    onError={(e) => { e.currentTarget.src = assets.avatar_icon; }}
                   />
                   {Array.isArray(onlineUsers) && onlineUsers.includes(user._id) ? (
                     <span className='absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-[#1a1730]' />
