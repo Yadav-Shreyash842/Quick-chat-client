@@ -140,7 +140,9 @@ const updateProfile = async (body) => {
     }
 
     console.log("connectSocket: creating socket for user:", userData._id);
+    const currentToken = token || localStorage.getItem("token");
     const newSocket = io(backendUrl, {
+      auth: { token: currentToken },
       query: { userId: userData._id }
     });
 
